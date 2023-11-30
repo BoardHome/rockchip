@@ -1,5 +1,5 @@
 RK_KERNEL_CFG="firefly_linux_defconfig"
-RK_KERNEL_DTS_NAME="rk3562-firefly-aio-3562q"
+RK_KERNEL_DTS_NAME="rk3562-firefly-aio-3562jq"
 RK_UBOOT_OPTS="--spl-new"
 RK_USE_FIT_IMG=y
 RK_WIFIBT_CHIP="AP6256"
