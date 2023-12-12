@@ -1,0 +1,12 @@
+RK_KERNEL_CFG="firefly_linux_defconfig"
+RK_KERNEL_DTS_NAME="rk3562-firefly-aio-3562jq"
+RK_UBOOT_OPTS="--spl-new"
+RK_USE_FIT_IMG=y
+RK_WIFIBT_CHIP="AP6256"
+RK_WIFIBT_TTY="ttyS4"
+RK_PARAMETER="parameter-debian-fit.txt"
+PREBUILT_ROOTFS_IMG="prebuilt_rootfs/rk356x_debian_rootfs.img"
+RK_PACKAGE_FILE_CUSTOM=y
+RK_PACKAGE_FILE="rk356x-debian-package-file"
+RK_BOOT_FIT_ITS="bootramdisk.its"
+RK_RAMDISK_IMG="kernel/ramdisk.img"
