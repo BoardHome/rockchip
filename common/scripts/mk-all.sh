@@ -23,7 +23,7 @@ build_all()
 	"$SCRIPTS_DIR/mk-security.sh" security_check
 
 	if [ "$RK_KERNEL_CFG" ]; then
-		"$SCRIPTS_DIR/mk-kernel.sh"
+		"$SCRIPTS_DIR/mk-kernel.sh" $RK_BOOT_IMG_FMT
 		"$SCRIPTS_DIR/mk-rootfs.sh"
 		"$SCRIPTS_DIR/mk-recovery.sh"
 	fi
