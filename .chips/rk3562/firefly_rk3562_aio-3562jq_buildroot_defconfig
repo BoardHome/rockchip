@@ -7,4 +7,5 @@ RK_WIFIBT_TTY="ttyS4"
 RK_PARAMETER="parameter-buildroot-fit.txt"
 RK_BOOT_FIT_ITS="bootramdisk.its"
 RK_RAMDISK_IMG="kernel/ramdisk.img"
+RK_RECOVERY_RAMDISK="rk3562-recovery-arm64.cpio.gz"
 USE_EXTBOOT=y
