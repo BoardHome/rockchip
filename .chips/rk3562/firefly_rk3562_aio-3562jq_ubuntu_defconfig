@@ -10,3 +10,4 @@ RK_PACKAGE_FILE_CUSTOM=y
 RK_PACKAGE_FILE="rk356x-ubuntu-package-file"
 RK_BOOT_FIT_ITS="bootramdisk.its"
 RK_RAMDISK_IMG="kernel/ramdisk.img"
+USE_EXTBOOT=y
