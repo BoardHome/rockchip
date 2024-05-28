@@ -112,7 +112,10 @@ TOP_DIR=$(realpath $COMMON_DIR/../../..)
 ROCKDEV=$TOP_DIR/rockdev
 IMGNAME=
 
+mkdir -p $TOP_DIR/rockdev/amp
+
 BOARD_CONFIG=$TOP_DIR/device/rockchip/.BoardConfig.mk
+CHIP_DIR="$(realpath $TOP_DIR/device/rockchip/.target_product)"
 TARGET_PRODUCT="$TOP_DIR/device/rockchip/.target_product"
 TARGET_PRODUCT_DIR=$(realpath ${TARGET_PRODUCT})
 
@@ -507,6 +510,49 @@ function build_check_cross_compile(){
 	esac
 }
 
+function check_amp_system(){
+    local i
+
+    for ((i = 0; i < $RK_AMP_CORE_NUMS; i++))
+    do
+        export AMP_CORE_SYSTEM=$(eval echo \$RK_AMP_CORE${i}_SYSTEM)
+
+        if [ $AMP_CORE_SYSTEM = "kernel" ]; then
+            export AMP_KERNEL_ENABLE=1
+            break
+        fi
+    done
+
+    for ((i = 0; i < $RK_AMP_CORE_NUMS; i++))
+    do
+        if [ "$RK_AMP_PRIMARY_CORE" = "${i}" ]; then
+            export AMP_PRIMARY_CORE=$RK_AMP_PRIMARY_CORE
+            break
+        fi
+    done
+}
+
+ROOT_PART_OFFSET=
+ROOT_PART_SIZE=
+function check_rootfs_partition(){
+    local i
+
+    for ((i = 1; i < 99; i++)); do
+        PARTITION_FIELD=$(grep -r "CMDLINE" $CHIP_DIR/$RK_PARAMETER | cut -d ',' -f ${i})
+        if [ -z "$PARTITION_FIELD" ]; then
+            break
+        fi
+
+        if [[ "$PARTITION_FIELD" == *"rootfs"* ]]; then
+            ROOT_PART_OFFSET=$(grep -r "CMDLINE" $CHIP_DIR/$RK_PARAMETER | cut -d ',' -f ${i} | cut -d '(' -f 1 | cut -d '@' -f 2)
+            ROOT_PART_SIZE=$(grep -r "CMDLINE" $CHIP_DIR/$RK_PARAMETER | cut -d ',' -f ${i} | cut -d '(' -f 1  | cut -d '@' -f 1)
+            break
+        fi
+    done
+}
+
+
+
 function build_check(){
 	local build_depend_cfg="build-depend-tools.txt"
 	common_product_build_tools="$TOP_DIR/device/rockchip/common/$build_depend_cfg"
@@ -701,6 +747,221 @@ function build_loader(){
 	fi
 
 	finish_build
+}
+
+function build_hal(){
+    check_config RK_HAL_TARGET || return 0
+    check_amp_system
+
+    AMP_PATH=$TOP_DIR/rockdev/amp
+
+    export CROSS_COMPILE=$(realpath $TOP_DIR)/prebuilts/gcc/linux-x86/$RK_HAL_CROSS_COMPILE_TOOL/bin/$RK_HAL_CROSS_COMPILE_GNU
+
+    cd hal/$RK_HAL_TARGET
+
+    export FIRMWARE_CPU_BASE=$(eval echo \$CPU$1_MEM_BASE)
+    export DRAM_SIZE=$(eval echo \$CPU$1_MEM_SIZE)
+    export SRAM_BASE=$(eval echo \$CPU$1_SRAM_BASE)
+    export SRAM_SIZE=$(eval echo \$CPU$1_SRAM_SIZE)
+    export SHMEM_BASE=$SHMEM_BASE
+    export SHMEM_SIZE=$SHMEM_SIZE
+    export LINUX_RPMSG_BASE=$LINUX_RPMSG_BASE
+    export LINUX_RPMSG_SIZE=$LINUX_RPMSG_SIZE
+    export NC_MEM_BASE=$NC_MEM_BASE
+    export NC_MEM_SIZE=$NC_MEM_SIZE
+    export SHRPMSG_SIZE=$SHRPMSG_SIZE
+    export SHRAMFS_SIZE=$SHRAMFS_SIZE
+    export SHLOG0_SIZE=$SHLOG0_SIZE
+    export SHLOG1_SIZE=$SHLOG1_SIZE
+    export SHLOG2_SIZE=$SHLOG2_SIZE
+    export SHLOG3_SIZE=$SHLOG3_SIZE
+    export HAL_CONSOLE_PORT=$RK_HAL_CONSOLE_PORT
+    export CUR_CPU=$1
+
+    case $1 in
+        0|1|2|3)
+            make clean > /dev/null
+            rm -rf hal$1.elf hal$1.bin
+            ERR_LOG=${TOP_DIR}/hal.log
+            make -j$(nproc) > ${TOP_DIR}/hal.log 2>&1
+            cp TestDemo.elf hal$1.elf
+            mv TestDemo.bin hal$1.bin
+            ln -rsf hal$1.bin $AMP_PATH/cpu$1.bin
+            ;;
+        clean)
+            make clean > /dev/null
+            ;;
+        *)
+            echo ""
+            echo "Usage: ./build.sh hal <0|1|2|3|clean>"
+            echo ""
+            exit -1
+            ;;
+    esac
+
+    finish_build
+
+
+}
+
+function build_rtthread(){
+    check_config RK_RTTHREAD_TARGET || return 0
+    check_amp_system
+
+    IMAGE_PATH=$TOP_DIR/rockdev
+    AMP_PATH=$TOP_DIR/rockdev/amp
+
+    export RTT_EXEC_PATH=$TOP_DIR/prebuilts/gcc/linux-x86/$RK_RTT_CROSS_COMPILE_TOOL/bin/
+
+    cd rt-thread/bsp/rockchip/$RK_RTTHREAD_TARGET
+
+    export RTT_PRMEM_BASE=$(eval echo \$CPU$1_MEM_BASE)
+    export RTT_PRMEM_SIZE=$(eval echo \$CPU$1_MEM_SIZE)
+    export RTT_SRAM_BASE=$(eval echo \$CPU$1_SRAM_BASE)
+    export RTT_SRAM_SIZE=$(eval echo \$CPU$1_SRAM_SIZE)
+    export RTT_SHMEM_BASE=$SHMEM_BASE
+    export RTT_SHMEM_SIZE=$SHMEM_SIZE
+    export LINUX_RPMSG_BASE=$LINUX_RPMSG_BASE
+    export LINUX_RPMSG_SIZE=$LINUX_RPMSG_SIZE
+    export RTT_SHRPMSG_SIZE=$SHRPMSG_SIZE
+    export RTT_SHRAMFS_SIZE=$SHRAMFS_SIZE
+    export RTT_SHLOG0_SIZE=$SHLOG0_SIZE
+    export RTT_SHLOG1_SIZE=$SHLOG1_SIZE
+    export RTT_SHLOG2_SIZE=$SHLOG2_SIZE
+    export RTT_SHLOG3_SIZE=$SHLOG3_SIZE
+    export AMP_PRIMARY_CORE=$RK_AMP_PRIMARY_CORE
+    export CUR_CPU=$1
+
+    check_rootfs_partition
+    if [ -n "$ROOT_PART_OFFSET" ] && [ -n "$ROOT_PART_SIZE" ];then
+        export ROOT_PART_OFFSET=$ROOT_PART_OFFSET
+        export ROOT_PART_SIZE=$ROOT_PART_SIZE
+    fi
+
+    cp .config .config.bk
+    cp rtconfig.h rtconfig.h.bk
+
+    case $1 in
+        0|1|2|3)
+            export RK_RTTHREAD_DEFCONFIG=$(eval echo \$RK_RTTHREAD$1_DEFCONFIG)
+
+            if [ -f ".config$1.tmp" ] && [ -f "rtconfig$1.h.tmp" ] ;then
+                cp .config$1.tmp .config
+                cp rtconfig$1.h.tmp rtconfig.h
+            else
+                if [ -n "$RK_RTTHREAD_DEFCONFIG" ] ;then
+                    cp $RK_RTTHREAD_DEFCONFIG .config
+                    scons --menuconfig
+                    cp .config .config$1.tmp
+                    cp rtconfig.h rtconfig$1.h.tmp
+                fi
+            fi
+
+            scons -c > /dev/null
+            rm -rf gcc_arm.ld Image/rtt$1.elf Image/rtt$1.bin
+            ERR_LOG=${TOP_DIR}/rtt.log
+            scons -j$(nproc) > ${TOP_DIR}/rtt.log 2>&1
+            cp rtthread.elf Image/rtt$1.elf
+            mv rtthread.bin Image/rtt$1.bin
+            ln -rsf Image/rtt$1.bin $AMP_PATH/cpu$1.bin
+            ;;
+        menuconfig)
+            echo "0: $2"
+            case $2 in
+                0|1|2|3)
+                    export RK_RTTHREAD_DEFCONFIG=$(eval echo \$RK_RTTHREAD$2_DEFCONFIG)
+
+                    if [ -f ".config$2.tmp" ] && [ -f "rtconfig$2.h.tmp" ] ;then
+                        cp .config$2.tmp .config
+                        cp rtconfig$2.h.tmp rtconfig.h
+                    else
+                        if [ -n "$RK_RTTHREAD_DEFCONFIG" ] ;then
+                            cp $RK_RTTHREAD_DEFCONFIG .config
+                        fi
+                    fi
+                    scons --menuconfig
+                    cp .config .config$2.tmp
+                    cp rtconfig.h rtconfig$2.h.tmp
+
+                    local SAVE
+                    read -p "Would you like save to defconfig(y/n)?" SAVE
+                    if [ "$SAVE" = "y" ] || [ "$SAVE" = "Y" ] ;then
+                        cp .config $RK_RTTHREAD_DEFCONFIG
+                    fi
+                    exit -1
+                    ;;
+                *)
+                    echo ""
+                    echo "Usage: ./build.sh menuconfig rtthread <|0|1|2|3>"
+                    echo ""
+                    exit -1
+                    ;;
+            esac
+            ;;
+        clean)
+            scons -c
+            rm -rf gcc_arm.ld
+            local i
+            for ((i = 0; i < $RK_AMP_CORE_NUMS; i++))
+            do
+                rm -rf .config$i.tmp rtconfig$i.h.tmp
+            done
+            ;;
+        rootfs)
+            ./mkroot.sh $TOP_DIR/$RK_ROOTFS_DATA/ $CHIP_DIR/$RK_PARAMETER $IMAGE_PATH/
+            mv $IMAGE_PATH/root.img $TOP_DIR/$2/rootfs.fat
+            ln -rsf $TOP_DIR/$2/rootfs.fat $IMAGE_PATH/rootfs.img
+            ;;
+        *)
+            echo ""
+            echo "Usage: ./build.sh rtthread <rootfs|clean|0|1|2|3>"
+            echo ""
+            exit -1
+            ;;
+    esac
+
+    mv .config.bk .config
+    mv rtconfig.h.bk rtconfig.h
+
+    finish_build
+}
+
+function build_ampimg(){
+    IMAGE_PATH=$TOP_DIR/rockdev
+    AMP_PATH=$TOP_DIR/rockdev/amp
+
+    cd $AMP_PATH
+
+    ln -rsf $CHIP_DIR/$RK_AMP_FIT_ITS $AMP_PATH/amp.its
+    $COMMON_DIR/mkimage -f amp.its -E -p 0xe00 amp.img
+    ln -rsf amp.img $IMAGE_PATH/amp.img
+
+    finish_build
+}
+
+function build_amp(){
+    local i
+    for ((i = 0; i < $RK_AMP_CORE_NUMS; i++))
+    do
+        export AMP_CORE_SYSTEM=$(eval echo \$RK_AMP_CORE${i}_SYSTEM)
+
+        case $AMP_CORE_SYSTEM in
+            hal)
+                build_hal $i
+                ;;
+            rtthread)
+                build_rtthread $i
+                ;;
+            kernel)
+                build_kernel
+                ;;
+            *)
+                echo "Unknow system: RK_AMP_CORE${i}_SYSTEM=$AMP_CORE_SYSTEM"
+                ;;
+        esac
+    done
+
+    build_ampimg
 }
 
 function build_kernel(){
@@ -1662,6 +1923,7 @@ function build_all(){
 		build_kernel
 	fi
 
+    build_amp
 	build_toolchain && \
 	build_rootfs ${RK_ROOTFS_SYSTEM:-buildroot}
 	build_recovery
@@ -1692,6 +1954,8 @@ function build_cleanall(){
 	rm -rf buildroot/output
 	rm -rf yocto/build/tmp
 	rm -rf debian/binary
+    build_rtthread clean
+    build_hal clean
 
 	finish_build
 }
@@ -2398,10 +2662,10 @@ function build_pupdateimg(){
 			fi
 
 			local root_mk_build=$(cat fw_log/.ff_log_build/3_rootfs/$rootfs_name/Fconfig)
-			
+
 			pack_flag=""
 
-			for mk_root in $root_mk_build; do 
+			for mk_root in $root_mk_build; do
 				if [ "$mk_root" = "$local_mk" ]; then
 					pack_flag="pack"
 					break
@@ -2411,7 +2675,7 @@ function build_pupdateimg(){
 			if [ -z "$pack_flag" ];then
 				continue
 			fi
-			
+
 			create_fw_log
 
 			#pack
@@ -2466,7 +2730,7 @@ function build_allrelease_config(){
         	sum_soc=$sum_soc"$name = $count "
 	done
 	$DIALOG --backtitle "Checklist" --checklist "Select Soc" 50 100 50 $sum_soc 2> .save_soc
-	
+
 	if [ $? -ne 0 ];then
         	exit -1
 	fi
@@ -2485,7 +2749,7 @@ function build_allrelease_config(){
         	let count=count+1
         	sum=$sum"$name = $count "
 	done
-	
+
 	echo $sum
 	$DIALOG --backtitle "Checklist" --checklist "Select mkfile" 50 100 50 $sum 2> .save_mkfile
 	if [ $? -ne 0 ];then
@@ -2507,7 +2771,7 @@ function build_allrelease(){
 	DIALOG=$TOP_DIR/device/rockchip/common/dialog
 	if [ -a $TOP_DIR/.allrelease ]; then
 		mk_list=$(cat $TOP_DIR/.allrelease)
-	#{	
+	#{
 		for mkfile in $mk_list;
 		do
 		        ./build.sh $mkfile
@@ -2523,7 +2787,7 @@ function build_allrelease(){
 
 			build_all
 			build_firmware
-			./build.sh pupdateimg 
+			./build.sh pupdateimg
 		done
 	#} | $DIALOG --title "coping" --gauge "Starting to build..." 20 50 10
 	else
@@ -2676,6 +2940,14 @@ for option in ${OPTIONS}; do
 			build_uboot
 			echo "please update rootfs.img / boot.img"
 			;;
+        hal)
+            build_hal $2
+            exit 1;;
+        rtthread)
+            build_rtthread $2 $3
+            exit 1;;
+        amp) build_amp ;;
+        ampimg) build_ampimg ;;
 		*) usage ;;
 	esac
 done
