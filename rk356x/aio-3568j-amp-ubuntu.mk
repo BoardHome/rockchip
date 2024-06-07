@@ -5,6 +5,8 @@ CUR_DIR=`dirname $CMD`
 
 source $CUR_DIR/firefly-rk3568-ubuntu.mk
 
+source $CUR_DIR/firefly-rk3568-linux-rtt.mk
+
 export RK_UBOOT_DEFCONFIG=rk3568
 # Kernel defconfig fragment
 export RK_KERNEL_DEFCONFIG_FRAGMENT="$RK_KERNEL_DEFCONFIG_FRAGMENT rk356x_amp.config"
