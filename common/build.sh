@@ -330,6 +330,8 @@ function usage()
 	echo "loader             -build loader"
 	echo "kernel             -build kernel"
 	echo "modules            -build kernel modules"
+    echo "rtthread           -build rt-thread"
+    echo "hal                -build hal"
 	echo "toolchain          -build toolchain"
 	echo "extboot            -build extlinux boot.img, boot from EFI partition"
 	echo "rootfs             -build default rootfs, currently build buildroot as default"
