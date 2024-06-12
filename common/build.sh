@@ -1923,7 +1923,10 @@ function build_all(){
 		build_kernel
 	fi
 
-    build_amp
+    if [ "$FF_AMP" = "true" ]; then
+        build_amp
+    fi
+
 	build_toolchain && \
 	build_rootfs ${RK_ROOTFS_SYSTEM:-buildroot}
 	build_recovery
@@ -2579,7 +2582,7 @@ EOF
 		done
 
 	fi
-	
+
 	for i in $(find fw_log/.ff_log_build/2_board/ -maxdepth 1 -name "common.md" -o -name "common.txt")
 	do
 		cat $i >> .firefly_FW_log.tmp
