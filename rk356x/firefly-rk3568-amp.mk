@@ -25,7 +25,7 @@ export RK_HAL_CROSS_COMPILE_GNU=arm-none-eabi-
 # Uboot path
 export RK_UBOOT_PATH=u-boot
 # Uboot defconfig
-export RK_UBOOT_DEFCONFIG=rk3568
+export RK_UBOOT_DEFCONFIG=firefly-rk3568
 # Uboot parameters
 export RK_UBOOT_PARAMETER=rkbin/RKBOOT/RK3568MINIALL.ini
 # Uboot trust
