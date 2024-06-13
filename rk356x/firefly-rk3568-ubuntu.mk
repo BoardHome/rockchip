@@ -6,7 +6,7 @@ CUR_DIR=`dirname $CMD`
 source $CUR_DIR/BoardConfig.mk
 
 # Uboot defconfig
-export RK_UBOOT_DEFCONFIG=rk3568
+export RK_UBOOT_DEFCONFIG=firefly-rk3568
 # Kernel defconfig
 export RK_KERNEL_DEFCONFIG=firefly_linux_defconfig
 # parameter for GPT table
