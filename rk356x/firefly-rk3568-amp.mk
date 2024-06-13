@@ -28,6 +28,8 @@ export RK_UBOOT_PATH=u-boot
 export RK_UBOOT_DEFCONFIG=firefly-rk3568
 # Uboot parameters
 export RK_UBOOT_PARAMETER=rkbin/RKBOOT/RK3568MINIALL.ini
+# update spl
+export RK_LOADER_UPDATE_SPL=
 # Uboot trust
 export RK_TRUST_INI_CONFIG=RK3568TRUST_CPU3.ini
 # Uboot output loader image
