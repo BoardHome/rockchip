@@ -7,6 +7,8 @@ source $CUR_DIR/aio-3568j-ubuntu.mk
 source $CUR_DIR/firefly-rk3568-amp.mk
 source $CUR_DIR/firefly-rk3568-linux-rtt.mk
 
+# packagefile for make update image 
+export RK_PACKAGE_FILE=rk356x-amp-ubuntu-package-file
 # parameter for GPT table
 export RK_PARAMETER=parameter-amp-ubuntu-fit.txt
 # Kernel defconfig fragment
